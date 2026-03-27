@@ -1,0 +1,1274 @@
+{
+  "name": "Your Telegram Bot v2 (Claude + Supabase)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "your-bot-webhook-path",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1100,
+        300
+      ],
+      "id": "webhook-trigger",
+      "name": "Telegram Webhook",
+      "webhookId": "your-bot-webhook-id"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.message ? 'yes' : '' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "has-msg"
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -920,
+        300
+      ],
+      "id": "has-message-check",
+      "name": "Has Message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.message.chat.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "id": "check-owner-id"
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -740,
+        300
+      ],
+      "id": "check-owner",
+      "name": "Check Owner"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.body.message.chat.id }}",
+        "text": "🔒 Этот бот работает в приватном режиме.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        520
+      ],
+      "id": "not-authorized",
+      "name": "Not Authorized",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Your Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $(\"Telegram Webhook\").item.json.body.message.chat.id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        300
+      ],
+      "id": "typing-action",
+      "name": "Typing Action",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Your Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Webhook').item.json.body.message.text }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cond-start"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Start"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Webhook').item.json.body.message.text }}",
+                    "rightValue": "/stats",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cond-stats"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Stats"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Webhook').item.json.body.message.photo ? 'has_photo' : '' }}",
+                    "rightValue": "has_photo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cond-photo"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Photo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Webhook').item.json.body.message.voice ? 'has_voice' : '' }}",
+                    "rightValue": "has_voice",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cond-voice"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Voice"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -380,
+        300
+      ],
+      "id": "message-type-switch",
+      "name": "Message Type"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/user_profiles",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ telegram_chat_id: $('Telegram Webhook').item.json.body.message.chat.id, name: ($('Telegram Webhook').item.json.body.message.from.first_name || 'User') }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        -100
+      ],
+      "id": "upsert-profile",
+      "name": "Upsert Profile"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Webhook').item.json.body.message.chat.id }}",
+        "text": "👋 Привет! Я твой персональный фитнес-помощник.\n\nВот что я умею:\n📸 Сфотографируй еду — я посчитаю КБЖУ\n✍️ Опиши что съел текстом — я запишу\n🎤 Отправь голосовое — я пойму и запишу\n💬 Задай вопрос о питании — я отвечу\n📊 /stats — сводка за сегодня\n\nТвоя дневная цель: 2400 ккал | 140 г белка\n\nДавай начнём! 🍽",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        -100
+      ],
+      "id": "send-start",
+      "name": "Send Start Message",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Your Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://YOUR_PROJECT_REF.supabase.co/rest/v1/user_profiles?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&select=*",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        100
+      ],
+      "id": "get-profile-stats",
+      "name": "Get Profile Stats"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://YOUR_PROJECT_REF.supabase.co/rest/v1/food_log?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&logged_at=gte.{{ $now.setZone('Asia/Novosibirsk').startOf('day').toUTC().toISO() }}&logged_at=lt.{{ $now.setZone('Asia/Novosibirsk').plus({days:1}).startOf('day').toUTC().toISO() }}&select=*",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        100
+      ],
+      "id": "get-today-logs-stats",
+      "name": "Get Today Logs Stats"
+    },
+    {
+      "parameters": {
+        "jsCode": "const profileItem = $('Get Profile Stats').first().json;\nconst profile = Array.isArray(profileItem) ? profileItem[0] : profileItem;\n\nconst logItems = $('Get Today Logs Stats').all();\n\nlet totalCal = 0, totalProt = 0, totalFat = 0, totalCarbs = 0;\nconst meals = [];\n\nfor (const item of logItems) {\n  const log = item.json;\n  totalCal += Number(log.calories) || 0;\n  totalProt += Number(log.protein) || 0;\n  totalFat += Number(log.fat) || 0;\n  totalCarbs += Number(log.carbs) || 0;\n  meals.push(`\\u2022 ${log.meal_description}: ${Math.round(log.calories)} \\u043a\\u043a\\u0430\\u043b`);\n}\n\nconst targetCal = Number(profile.target_calories) || 2400;\nconst targetProt = Number(profile.target_protein) || 140;\nconst remaining = Math.round(targetCal - totalCal);\nconst protRemaining = Math.round(targetProt - totalProt);\n\nlet status = '';\nif (remaining > 500) status = '\\u2705 \\u041e\\u0442\\u043b\\u0438\\u0447\\u043d\\u043e, \\u0437\\u0430\\u043f\\u0430\\u0441 \\u0435\\u0441\\u0442\\u044c!';\nelse if (remaining > 0) status = '\\u26a1 \\u041f\\u043e\\u0447\\u0442\\u0438 \\u0443 \\u0446\\u0435\\u043b\\u0438';\nelse status = '\\ud83d\\udd34 \\u041b\\u0438\\u043c\\u0438\\u0442 \\u043f\\u0440\\u0435\\u0432\\u044b\\u0448\\u0435\\u043d!';\n\nconst mealsList = meals.length > 0 ? '\\ud83c\\udf7d \\u041f\\u0440\\u0438\\u0451\\u043c\\u044b \\u043f\\u0438\\u0449\\u0438:\\\\n' + meals.join('\\\\n') : '\\u041f\\u043e\\u043a\\u0430 \\u043d\\u0438\\u0447\\u0435\\u0433\\u043e \\u043d\\u0435 \\u0437\\u0430\\u043f\\u0438\\u0441\\u0430\\u043d\\u043e.';\n\nconst message = `\\ud83d\\udcca \\u0421\\u0442\\u0430\\u0442\\u0438\\u0441\\u0442\\u0438\\u043a\\u0430 \\u0437\\u0430 \\u0441\\u0435\\u0433\\u043e\\u0434\\u043d\\u044f:\\n\\n\\ud83d\\udd25 \\u041a\\u0430\\u043b\\u043e\\u0440\\u0438\\u0438: ${Math.round(totalCal)} / ${targetCal} \\u043a\\u043a\\u0430\\u043b\\n\\ud83e\\udd69 \\u0411\\u0435\\u043b\\u043e\\u043a: ${Math.round(totalProt)} / ${targetProt} \\u0433\\n\\ud83e\\uddc8 \\u0416\\u0438\\u0440\\u044b: ${Math.round(totalFat)} \\u0433\\n\\ud83c\\udf5e \\u0423\\u0433\\u043b\\u0435\\u0432\\u043e\\u0434\\u044b: ${Math.round(totalCarbs)} \\u0433\\n\\n\\u23f3 \\u041e\\u0441\\u0442\\u0430\\u043b\\u043e\\u0441\\u044c: ${remaining} \\u043a\\u043a\\u0430\\u043b | ${protRemaining} \\u0433 \\u0431\\u0435\\u043b\\u043a\\u0430\\n\\n${status}\\n\\n${mealsList}`;\n\nreturn [{ json: { message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        100
+      ],
+      "id": "format-stats",
+      "name": "Format Stats"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Webhook').item.json.body.message.chat.id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        100
+      ],
+      "id": "send-stats",
+      "name": "Send Stats",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Your Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Webhook').item.json.body.message.photo.slice(-1)[0]['file_id'] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -100,
+        350
+      ],
+      "id": "get-image",
+      "name": "Get Image",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Your Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nfor (const item of items) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.mimeType = 'image/jpeg';\n  }\n}\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        350
+      ],
+      "id": "fix-mime",
+      "name": "Fix MIME"
+    },
+    {
+      "parameters": {
+        "jsCode": "const binaryData = $input.first().binary.data;\nconst buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst base64 = buffer.toString('base64');\nconst mimeType = binaryData.mimeType || 'image/jpeg';\n\nreturn [{ json: { base64, mimeType } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        350
+      ],
+      "id": "to-base64",
+      "name": "To Base64"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_ANTHROPIC_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1024, messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: $json.mimeType, data: $json.base64 } }, { type: 'text', text: 'Ты — эксперт по определению КБЖУ в еде и напитках по фотографии.\\n\\nПроанализируй фотографию и определи что на ней.\\n\\nЕсли на фото еда или напиток, ответь СТРОГО в двух частях:\\n\\nЧАСТЬ 1 — человекочитаемый ответ:\\n🍽 В вашей еде [описание еды на фото] следующее соотношение КБЖУ:\\n\\n📊 Калорий: X\\n▫️ Белков: X г\\n▫️ Жиров: X г\\n▫️ Углеводов: X г\\n\\nПримерный вес порции: X г\\n\\nЧАСТЬ 2 — JSON для записи (обязательно):\\n|||FOOD_LOG|||\\n{\\\"meal_description\\\": \\\"описание\\\", \\\"calories\\\": число, \\\"protein\\\": число, \\\"fat\\\": число, \\\"carbs\\\": число, \\\"meal_type\\\": \\\"auto\\\", \\\"source\\\": \\\"photo\\\"}\\n|||END_LOG|||\\n\\nПравила:\\n1. Считай КБЖУ на вес/количество, которое представлено на фото, а не на 100 грамм.\\n2. Если на фото не еда — ответь: \\\"Пришлите фотографию еды! 🍕\\\"\\n3. Строго придерживайся формата ответа.' }] }] }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        350
+      ],
+      "id": "claude-vision",
+      "name": "Claude Vision"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst chatId = $('Telegram Webhook').item.json.body.message.chat.id;\n\nlet output = '';\nif (response.content && Array.isArray(response.content)) {\n  output = response.content.map(c => c.text || '').join('');\n} else {\n  output = JSON.stringify(response);\n}\n\nlet foodData = null;\nlet userMessage = output;\n\nconst match = output.match(/\\|\\|\\|FOOD_LOG\\|\\|\\|([\\s\\S]*?)\\|\\|\\|END_LOG\\|\\|\\|/);\nif (match) {\n  try {\n    foodData = JSON.parse(match[1].trim());\n    userMessage = output.replace(/\\|\\|\\|FOOD_LOG\\|\\|\\|[\\s\\S]*?\\|\\|\\|END_LOG\\|\\|\\|/, '').trim();\n  } catch (e) {}\n}\n\nreturn [{ json: { userMessage, foodData, chatId, hasFoodLog: !!foodData } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        350
+      ],
+      "id": "parse-photo-response",
+      "name": "Parse Photo Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.hasFoodLog }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "id": "if-food-photo"
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        350
+      ],
+      "id": "has-food-photo",
+      "name": "Has Food? (Photo)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/food_log",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ telegram_chat_id: $json.chatId, meal_description: $json.foodData.meal_description, calories: $json.foodData.calories, protein: $json.foodData.protein, fat: $json.foodData.fat, carbs: $json.foodData.carbs, meal_type: $json.foodData.meal_type || 'auto', source: $json.foodData.source || 'photo' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ],
+      "id": "save-food-photo",
+      "name": "Save Food (Photo)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Webhook').item.json.body.message.chat.id }}",
+        "text": "={{ $('Parse Photo Response').item.json.userMessage }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1300,
+        350
+      ],
+      "id": "send-photo-result",
+      "name": "Send Photo Result",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Your Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Webhook').item.json.body.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -100,
+        850
+      ],
+      "id": "get-voice-file",
+      "name": "Get Voice File",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Your Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "parameterType": "formData",
+              "name": "model",
+              "value": "whisper-1"
+            },
+            {
+              "parameterType": "formData",
+              "name": "language",
+              "value": "ru"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        850
+      ],
+      "id": "whisper-transcribe",
+      "name": "Whisper Transcribe",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "Your OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-voice-text",
+              "name": "message_text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        500,
+        850
+      ],
+      "id": "voice-to-text",
+      "name": "Voice to Text"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-msg-text",
+              "name": "message_text",
+              "value": "={{ $('Telegram Webhook').item.json.body.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -100,
+        600
+      ],
+      "id": "message-text",
+      "name": "Message Text"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://YOUR_PROJECT_REF.supabase.co/rest/v1/user_profiles?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&select=*",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        600
+      ],
+      "id": "get-profile-text",
+      "name": "Get Profile Text"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://YOUR_PROJECT_REF.supabase.co/rest/v1/food_log?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&logged_at=gte.{{ $now.setZone('Asia/Novosibirsk').minus({days:7}).startOf('day').toUTC().toISO() }}&select=*&order=logged_at.asc",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        600
+      ],
+      "id": "get-week-logs",
+      "name": "Get Week Logs"
+    },
+    {
+      "parameters": {
+        "jsCode": "const profile = $('Get Profile Text').first().json;\nconst profileData = Array.isArray(profile) ? profile[0] : profile;\n// Use .all() to get ALL log items from n8n\nconst logItems = $('Get Week Logs').all();\nconst logsArr = logItems.map(item => item.json);\nconst chatId = $('Telegram Webhook').item.json.body.message.chat.id;\nconst messageText = $('Message Text').item.json.message_text || $('Voice to Text').item?.json?.message_text || '';\n\n// Group logs by day (Novosibirsk timezone)\nconst dayMap = {};\nfor (const log of logsArr) {\n  const d = new Date(log.logged_at);\n  // Novosibirsk = UTC+7\n  const nsk = new Date(d.getTime() + 7 * 60 * 60 * 1000);\n  const dayKey = nsk.toISOString().split('T')[0];\n  if (!dayMap[dayKey]) dayMap[dayKey] = [];\n  dayMap[dayKey].push(log);\n}\n\n// Today in NSK\nconst nowNsk = new Date(Date.now() + 7 * 60 * 60 * 1000);\nconst todayKey = nowNsk.toISOString().split('T')[0];\n\n// Today's totals\nconst todayLogs = dayMap[todayKey] || [];\nlet todayCal = 0, todayProt = 0, todayFat = 0, todayCarbs = 0;\nfor (const l of todayLogs) {\n  todayCal += Number(l.calories) || 0;\n  todayProt += Number(l.protein) || 0;\n  todayFat += Number(l.fat) || 0;\n  todayCarbs += Number(l.carbs) || 0;\n}\n\nconst targetCal = Number(profileData?.target_calories) || 2400;\nconst targetProt = Number(profileData?.target_protein) || 140;\n\n// Build history string\nlet historyStr = '';\nconst sortedDays = Object.keys(dayMap).sort();\nfor (const day of sortedDays) {\n  const dayLogs = dayMap[day];\n  let dc = 0, dp = 0, df = 0, dcarbs = 0;\n  const meals = [];\n  for (const l of dayLogs) {\n    dc += Number(l.calories) || 0;\n    dp += Number(l.protein) || 0;\n    df += Number(l.fat) || 0;\n    dcarbs += Number(l.carbs) || 0;\n    meals.push(`  - ${l.meal_description}: ${Math.round(l.calories)} ккал, Б${Math.round(l.protein)}г Ж${Math.round(l.fat)}г У${Math.round(l.carbs)}г`);\n  }\n  const isToday = day === todayKey;\n  historyStr += `\\n${day}${isToday ? ' (СЕГОДНЯ)' : ''}:  ${Math.round(dc)} ккал, Б${Math.round(dp)}г Ж${Math.round(df)}г У${Math.round(dcarbs)}г\\n`;\n  historyStr += meals.join('\\n') + '\\n';\n}\n\nif (!historyStr) historyStr = 'Нет записей за последние 7 дней.';\n\nconst systemPrompt = `Ты — персональный фитнес-помощник по питанию. Отвечай на русском языке. Ты дружелюбный, но профессиональный.\n\nДАННЫЕ ПОЛЬЗОВАТЕЛЯ:\n- Имя: ${profileData?.name || 'Пользователь'}\n- Рост: ${profileData?.height_cm || '?'} см, Вес: ${profileData?.weight_kg || '?'} кг, Возраст: ${profileData?.age || '?'} лет\n- BMR: ${profileData?.bmr || '?'}, TDEE: ${profileData?.tdee || '?'}\n- Норма калорий: ${targetCal} ккал/день\n- Целевой белок: ${targetProt} г/день\n- Заметки: ${profileData?.notes || 'нет'}\n\nСЕГОДНЯ (${todayKey}, по часовому поясу Новосибирск):\n- Съедено: ${Math.round(todayCal)} из ${targetCal} ккал\n- Белок: ${Math.round(todayProt)} из ${targetProt} г\n- Жиры: ${Math.round(todayFat)} г\n- Углеводы: ${Math.round(todayCarbs)} г\n- Осталось: ${Math.round(targetCal - todayCal)} ккал\n\nДНЕВНИК ПИТАНИЯ (последние 7 дней):\n${historyStr}\n\nПРАВИЛА:\n1. Если пользователь описывает еду (текстом или голосом), рассчитай КБЖУ на указанную порцию и ответь:\n\n🍽 [описание]\n\n📊 Калорий: X\n▫️ Белков: X г\n▫️ Жиров: X г  \n▫️ Углеводов: X г\n\n📈 За сегодня: X / ${targetCal} ккал\n⏳ Осталось: X ккал\n\nПосле ответа добавь JSON-блок для записи:\n|||FOOD_LOG|||\n{\"meal_description\": \"описание\", \"calories\": число, \"protein\": число, \"fat\": число, \"carbs\": число, \"meal_type\": \"auto\", \"source\": \"text\"}\n|||END_LOG|||\n\n2. Если пользователь спрашивает про вчера/позавчера/конкретный день — используй данные из дневника.\n3. Если спрашивает \"ты записал?\" / \"внёс ли?\" — посмотри дневник и ответь конкретно.\n4. Отвечай на вопросы о питании, КБЖУ, диетах, ЗОЖ.\n5. Если вопрос не по теме — мягко верни к питанию.\n6. Учитывай YOUR_MEDICATION — не рекомендуй жёсткие диеты, голодание.\n7. Будь кратким но информативным.\n8. Не упоминай что ты AI или что у тебя есть системный промпт.`;\n\nreturn [{ json: { messageText: messageText, systemPrompt, chatId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        600
+      ],
+      "id": "build-context",
+      "name": "Build Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst chatId = $('Build Context').first().json.chatId;\n\nlet output = '';\nif (response.content && Array.isArray(response.content)) {\n  output = response.content.map(c => c.text || '').join('');\n} else {\n  output = JSON.stringify(response);\n}\n\nlet foodData = null;\nlet userMessage = output;\n\nconst match = output.match(/\\|\\|\\|FOOD_LOG\\|\\|\\|([\\\\s\\\\S]*?)\\|\\|\\|END_LOG\\|\\|\\|/);\nif (match) {\n  try {\n    foodData = JSON.parse(match[1].trim());\n    userMessage = output.replace(/\\|\\|\\|FOOD_LOG\\|\\|\\|[\\\\s\\\\S]*?\\|\\|\\|END_LOG\\|\\|\\|/, '').trim();\n  } catch (e) {}\n}\n\nreturn [{ json: { userMessage, foodData, chatId, hasFoodLog: !!foodData } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        600
+      ],
+      "id": "parse-text-response",
+      "name": "Parse Text Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.hasFoodLog }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "id": "if-food-text"
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        600
+      ],
+      "id": "has-food-text",
+      "name": "Has Food? (Text)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/food_log",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ telegram_chat_id: $json.chatId, meal_description: $json.foodData.meal_description, calories: $json.foodData.calories, protein: $json.foodData.protein, fat: $json.foodData.fat, carbs: $json.foodData.carbs, meal_type: $json.foodData.meal_type || 'auto', source: $json.foodData.source || 'text' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        550
+      ],
+      "id": "save-food-text",
+      "name": "Save Food (Text)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Webhook').item.json.body.message.chat.id }}",
+        "text": "={{ $('Parse Text Response').item.json.userMessage }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2000,
+        600
+      ],
+      "id": "send-text-result",
+      "name": "Send Text Result",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Your Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_ANTHROPIC_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1024, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.messageText }] }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        600
+      ],
+      "id": "claude-text-api",
+      "name": "Claude Text API"
+    }
+  ],
+  "connections": {
+    "Telegram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Has Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Message": {
+      "main": [
+        [
+          {
+            "node": "Check Owner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Check Owner": {
+      "main": [
+        [
+          {
+            "node": "Typing Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not Authorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Typing Action": {
+      "main": [
+        [
+          {
+            "node": "Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message Type": {
+      "main": [
+        [
+          {
+            "node": "Upsert Profile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Profile Stats",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Profile": {
+      "main": [
+        [
+          {
+            "node": "Send Start Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profile Stats": {
+      "main": [
+        [
+          {
+            "node": "Get Today Logs Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Today Logs Stats": {
+      "main": [
+        [
+          {
+            "node": "Format Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Stats": {
+      "main": [
+        [
+          {
+            "node": "Send Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image": {
+      "main": [
+        [
+          {
+            "node": "Fix MIME",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix MIME": {
+      "main": [
+        [
+          {
+            "node": "To Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To Base64": {
+      "main": [
+        [
+          {
+            "node": "Claude Vision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Vision": {
+      "main": [
+        [
+          {
+            "node": "Parse Photo Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Photo Response": {
+      "main": [
+        [
+          {
+            "node": "Has Food? (Photo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Food? (Photo)": {
+      "main": [
+        [
+          {
+            "node": "Save Food (Photo)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Photo Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Food (Photo)": {
+      "main": [
+        [
+          {
+            "node": "Send Photo Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Voice File": {
+      "main": [
+        [
+          {
+            "node": "Whisper Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Whisper Transcribe": {
+      "main": [
+        [
+          {
+            "node": "Voice to Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Voice to Text": {
+      "main": [
+        [
+          {
+            "node": "Get Profile Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message Text": {
+      "main": [
+        [
+          {
+            "node": "Get Profile Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profile Text": {
+      "main": [
+        [
+          {
+            "node": "Get Week Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Week Logs": {
+      "main": [
+        [
+          {
+            "node": "Build Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Context": {
+      "main": [
+        [
+          {
+            "node": "Claude Text API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Text Response": {
+      "main": [
+        [
+          {
+            "node": "Has Food? (Text)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Food? (Text)": {
+      "main": [
+        [
+          {
+            "node": "Save Food (Text)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Text Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Food (Text)": {
+      "main": [
+        [
+          {
+            "node": "Send Text Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Text API": {
+      "main": [
+        [
+          {
+            "node": "Parse Text Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
+}
