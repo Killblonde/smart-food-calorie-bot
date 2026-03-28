@@ -1,10 +1,10 @@
 {
-  "name": "Your Telegram Bot v2 (Claude + Supabase)",
+  "name": "Фитнес Бот v2 (Claude + Supabase)",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "your-bot-webhook-path",
+        "path": "fitness-bot-v2",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
@@ -15,7 +15,7 @@
       ],
       "id": "webhook-trigger",
       "name": "Telegram Webhook",
-      "webhookId": "your-bot-webhook-id"
+      "webhookId": "fitness-bot-v2-webhook"
     },
     {
       "parameters": {
@@ -26,7 +26,7 @@
           },
           "conditions": [
             {
-              "leftValue": "={{ $json.body.message ? 'yes' : '' }}",
+              "leftValue": "={{ ($json.body.message || $json.body.callback_query) ? 'yes' : '' }}",
               "rightValue": "yes",
               "operator": {
                 "type": "string",
@@ -57,8 +57,8 @@
           },
           "conditions": [
             {
-              "leftValue": "={{ $json.body.message.chat.id }}",
-              "rightValue": 0,
+              "leftValue": "={{ ($json.body.message?.chat?.id || $json.body.callback_query?.message?.chat?.id) }}",
+              "rightValue": 293103275,
               "operator": {
                 "type": "number",
                 "operation": "equals"
@@ -97,15 +97,15 @@
       "name": "Not Authorized",
       "credentials": {
         "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Your Telegram Bot"
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
         }
       }
     },
     {
       "parameters": {
         "operation": "sendChatAction",
-        "chatId": "={{ $(\"Telegram Webhook\").item.json.body.message.chat.id }}"
+        "chatId": "={{ $(\"Telegram Webhook\").item.json.body.message?.chat?.id || $(\"Telegram Webhook\").item.json.body.callback_query?.message?.chat?.id }}"
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -117,8 +117,8 @@
       "name": "Typing Action",
       "credentials": {
         "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Your Telegram Bot"
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
         }
       },
       "onError": "continueRegularOutput"
@@ -215,6 +215,28 @@
               },
               "renameOutput": true,
               "outputKey": "Voice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Webhook').item.json.body.message.text }}",
+                    "rightValue": "/newday",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cond-newday"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "NewDay"
             }
           ]
         },
@@ -235,18 +257,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/user_profiles",
+        "url": "https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/user_profiles",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "YOUR_SUPABASE_SERVICE_KEY"
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Content-Type",
@@ -281,7 +303,7 @@
     {
       "parameters": {
         "chatId": "={{ $('Telegram Webhook').item.json.body.message.chat.id }}",
-        "text": "👋 Привет! Я твой персональный фитнес-помощник.\n\nВот что я умею:\n📸 Сфотографируй еду — я посчитаю КБЖУ\n✍️ Опиши что съел текстом — я запишу\n🎤 Отправь голосовое — я пойму и запишу\n💬 Задай вопрос о питании — я отвечу\n📊 /stats — сводка за сегодня\n\nТвоя дневная цель: 2400 ккал | 140 г белка\n\nДавай начнём! 🍽",
+        "text": "👋 Привет! Я твой персональный фитнес-помощник.\n\nВот что я умею:\n📸 Сфотографируй еду — я посчитаю КБЖУ\n✍️ Опиши что съел текстом — я запишу\n🎤 Отправь голосовое — я пойму и запишу\n💬 Задай вопрос о питании — я отвечу\n📊 /stats — сводка за сегодня\n🌅 /newday — начать новый день\n\nТвоя дневная цель: 2400 ккал | 140 г белка\n\nДавай начнём! 🍽",
         "additionalFields": {
           "appendAttribution": false
         }
@@ -296,26 +318,26 @@
       "name": "Send Start Message",
       "credentials": {
         "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Your Telegram Bot"
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
         }
       }
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://YOUR_PROJECT_REF.supabase.co/rest/v1/user_profiles?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&select=*",
+        "url": "=https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/user_profiles?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&select=*",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "YOUR_SUPABASE_SERVICE_KEY"
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
             }
           ]
         },
@@ -333,18 +355,18 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://YOUR_PROJECT_REF.supabase.co/rest/v1/food_log?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&logged_at=gte.{{ $now.setZone('Asia/Novosibirsk').startOf('day').toUTC().toISO() }}&logged_at=lt.{{ $now.setZone('Asia/Novosibirsk').plus({days:1}).startOf('day').toUTC().toISO() }}&select=*",
+        "url": "=https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/food_log?telegram_chat_id=eq.{{ $(\"Telegram Webhook\").item.json.body.message.chat.id }}&logged_at=gte.{{ ($(\"Get Profile Stats\").first().json.current_day_start || $(\"Get Profile Stats\").first().json[0]?.current_day_start || $now.setZone(\"Asia/Yekaterinburg\").startOf(\"day\").toUTC().toISO()).replace(\"+\", \"%2B\") }}&select=*&order=logged_at.asc",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "YOUR_SUPABASE_SERVICE_KEY"
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
             }
           ]
         },
@@ -361,7 +383,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const profileItem = $('Get Profile Stats').first().json;\nconst profile = Array.isArray(profileItem) ? profileItem[0] : profileItem;\n\nconst logItems = $('Get Today Logs Stats').all();\n\nlet totalCal = 0, totalProt = 0, totalFat = 0, totalCarbs = 0;\nconst meals = [];\n\nfor (const item of logItems) {\n  const log = item.json;\n  totalCal += Number(log.calories) || 0;\n  totalProt += Number(log.protein) || 0;\n  totalFat += Number(log.fat) || 0;\n  totalCarbs += Number(log.carbs) || 0;\n  meals.push(`\\u2022 ${log.meal_description}: ${Math.round(log.calories)} \\u043a\\u043a\\u0430\\u043b`);\n}\n\nconst targetCal = Number(profile.target_calories) || 2400;\nconst targetProt = Number(profile.target_protein) || 140;\nconst remaining = Math.round(targetCal - totalCal);\nconst protRemaining = Math.round(targetProt - totalProt);\n\nlet status = '';\nif (remaining > 500) status = '\\u2705 \\u041e\\u0442\\u043b\\u0438\\u0447\\u043d\\u043e, \\u0437\\u0430\\u043f\\u0430\\u0441 \\u0435\\u0441\\u0442\\u044c!';\nelse if (remaining > 0) status = '\\u26a1 \\u041f\\u043e\\u0447\\u0442\\u0438 \\u0443 \\u0446\\u0435\\u043b\\u0438';\nelse status = '\\ud83d\\udd34 \\u041b\\u0438\\u043c\\u0438\\u0442 \\u043f\\u0440\\u0435\\u0432\\u044b\\u0448\\u0435\\u043d!';\n\nconst mealsList = meals.length > 0 ? '\\ud83c\\udf7d \\u041f\\u0440\\u0438\\u0451\\u043c\\u044b \\u043f\\u0438\\u0449\\u0438:\\\\n' + meals.join('\\\\n') : '\\u041f\\u043e\\u043a\\u0430 \\u043d\\u0438\\u0447\\u0435\\u0433\\u043e \\u043d\\u0435 \\u0437\\u0430\\u043f\\u0438\\u0441\\u0430\\u043d\\u043e.';\n\nconst message = `\\ud83d\\udcca \\u0421\\u0442\\u0430\\u0442\\u0438\\u0441\\u0442\\u0438\\u043a\\u0430 \\u0437\\u0430 \\u0441\\u0435\\u0433\\u043e\\u0434\\u043d\\u044f:\\n\\n\\ud83d\\udd25 \\u041a\\u0430\\u043b\\u043e\\u0440\\u0438\\u0438: ${Math.round(totalCal)} / ${targetCal} \\u043a\\u043a\\u0430\\u043b\\n\\ud83e\\udd69 \\u0411\\u0435\\u043b\\u043e\\u043a: ${Math.round(totalProt)} / ${targetProt} \\u0433\\n\\ud83e\\uddc8 \\u0416\\u0438\\u0440\\u044b: ${Math.round(totalFat)} \\u0433\\n\\ud83c\\udf5e \\u0423\\u0433\\u043b\\u0435\\u0432\\u043e\\u0434\\u044b: ${Math.round(totalCarbs)} \\u0433\\n\\n\\u23f3 \\u041e\\u0441\\u0442\\u0430\\u043b\\u043e\\u0441\\u044c: ${remaining} \\u043a\\u043a\\u0430\\u043b | ${protRemaining} \\u0433 \\u0431\\u0435\\u043b\\u043a\\u0430\\n\\n${status}\\n\\n${mealsList}`;\n\nreturn [{ json: { message } }];"
+        "jsCode": "const profileItem = $('Get Profile Stats').first().json;\nconst profile = Array.isArray(profileItem) ? profileItem[0] : profileItem;\n\nconst logItems = $('Get Today Logs Stats').all();\n\nlet totalCal = 0, totalProt = 0, totalFat = 0, totalCarbs = 0;\nconst meals = [];\n\nfor (const item of logItems) {\n  const log = item.json;\n  totalCal += Number(log.calories) || 0;\n  totalProt += Number(log.protein) || 0;\n  totalFat += Number(log.fat) || 0;\n  totalCarbs += Number(log.carbs) || 0;\n  meals.push(`• ${log.meal_description}: ${Math.round(log.calories)} ккал`);\n}\n\nconst targetCal = Number(profile.target_calories) || 2400;\nconst targetProt = Number(profile.target_protein) || 140;\nconst remaining = Math.round(targetCal - totalCal);\nconst protRemaining = Math.round(targetProt - totalProt);\n\nlet status = '';\nif (remaining > 500) status = '✅ Отлично, запас есть!';\nelse if (remaining > 0) status = '⚡ Почти у цели';\nelse status = '🔴 Лимит превышен!';\n\nconst mealsList = meals.length > 0 ? '🍽 Приёмы пищи:\\n' + meals.join('\\n') : 'Пока ничего не записано.';\n\nconst message = `📊 Статистика за сегодня:\\n\\n🔥 Калории: ${Math.round(totalCal)} / ${targetCal} ккал\\n🥩 Белок: ${Math.round(totalProt)} / ${targetProt} г\\n🧈 Жиры: ${Math.round(totalFat)} г\\n🍞 Углеводы: ${Math.round(totalCarbs)} г\\n\\n⏳ Осталось: ${remaining} ккал | ${protRemaining} г белка\\n\\n${status}\\n\\n${mealsList}`;\n\nconst replyMarkup = JSON.stringify({\n  inline_keyboard: [\n    [\n      { text: '📊 День', callback_data: 'stats_today' },\n      { text: '3 дня', callback_data: 'stats_3d' },\n      { text: 'Неделя', callback_data: 'stats_week' },\n      { text: '2 нед', callback_data: 'stats_2week' },\n      { text: 'Месяц', callback_data: 'stats_month' }\n    ]\n  ]\n});\n\nreturn [{ json: { message, replyMarkup } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -377,7 +399,8 @@
         "chatId": "={{ $('Telegram Webhook').item.json.body.message.chat.id }}",
         "text": "={{ $json.message }}",
         "additionalFields": {
-          "appendAttribution": false
+          "appendAttribution": false,
+          "reply_markup": "={{ $json.replyMarkup }}"
         }
       },
       "type": "n8n-nodes-base.telegram",
@@ -390,8 +413,8 @@
       "name": "Send Stats",
       "credentials": {
         "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Your Telegram Bot"
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
         }
       }
     },
@@ -411,8 +434,8 @@
       "name": "Get Image",
       "credentials": {
         "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Your Telegram Bot"
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
         }
       }
     },
@@ -482,7 +505,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst chatId = $('Telegram Webhook').item.json.body.message.chat.id;\n\nlet output = '';\nif (response.content && Array.isArray(response.content)) {\n  output = response.content.map(c => c.text || '').join('');\n} else {\n  output = JSON.stringify(response);\n}\n\nlet foodData = null;\nlet userMessage = output;\n\nconst match = output.match(/\\|\\|\\|FOOD_LOG\\|\\|\\|([\\s\\S]*?)\\|\\|\\|END_LOG\\|\\|\\|/);\nif (match) {\n  try {\n    foodData = JSON.parse(match[1].trim());\n    userMessage = output.replace(/\\|\\|\\|FOOD_LOG\\|\\|\\|[\\s\\S]*?\\|\\|\\|END_LOG\\|\\|\\|/, '').trim();\n  } catch (e) {}\n}\n\nreturn [{ json: { userMessage, foodData, chatId, hasFoodLog: !!foodData } }];"
+        "jsCode": "const response = $input.first().json;\nconst chatId = $('Telegram Webhook').item.json.body.message.chat.id;\n\nlet output = '';\nif (response.content && Array.isArray(response.content)) {\n  output = response.content.map(c => c.text || '').join('');\n} else {\n  output = JSON.stringify(response);\n}\n\nlet foodData = null;\nlet userMessage = output;\n\nconst startTag = '|||FOOD_LOG|||';\nconst endTag = '|||END_LOG|||';\nconst startIdx = output.indexOf(startTag);\nconst endIdx = output.indexOf(endTag);\n\nif (startIdx !== -1 && endIdx !== -1) {\n  const jsonStr = output.substring(startIdx + startTag.length, endIdx).trim();\n  try {\n    foodData = JSON.parse(jsonStr);\n    userMessage = output.substring(0, startIdx).trim();\n  } catch (e) {}\n}\n\nreturn [{ json: { userMessage, foodData, chatId, hasFoodLog: !!foodData } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -527,18 +550,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/food_log",
+        "url": "https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/food_log",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "YOUR_SUPABASE_SERVICE_KEY"
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Content-Type",
@@ -582,8 +605,8 @@
       "name": "Send Photo Result",
       "credentials": {
         "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Your Telegram Bot"
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
         }
       }
     },
@@ -603,8 +626,8 @@
       "name": "Get Voice File",
       "credentials": {
         "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Your Telegram Bot"
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
         }
       }
     },
@@ -649,8 +672,8 @@
       "name": "Whisper Transcribe",
       "credentials": {
         "openAiApi": {
-          "id": "YOUR_OPENAI_CREDENTIAL_ID",
-          "name": "Your OpenAI Account"
+          "id": "tqzl3mAiWekMwarq",
+          "name": "OpenAi account"
         }
       }
     },
@@ -703,18 +726,18 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://YOUR_PROJECT_REF.supabase.co/rest/v1/user_profiles?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&select=*",
+        "url": "=https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/user_profiles?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&select=*",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "YOUR_SUPABASE_SERVICE_KEY"
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
             }
           ]
         },
@@ -732,18 +755,18 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://YOUR_PROJECT_REF.supabase.co/rest/v1/food_log?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&logged_at=gte.{{ $now.setZone('Asia/Novosibirsk').minus({days:7}).startOf('day').toUTC().toISO() }}&select=*&order=logged_at.asc",
+        "url": "=https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/food_log?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}&logged_at=gte.{{ $now.setZone('Asia/Yekaterinburg').minus({days:7}).startOf('day').toUTC().toISO() }}&select=*&order=logged_at.asc",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "YOUR_SUPABASE_SERVICE_KEY"
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
             }
           ]
         },
@@ -760,7 +783,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const profile = $('Get Profile Text').first().json;\nconst profileData = Array.isArray(profile) ? profile[0] : profile;\n// Use .all() to get ALL log items from n8n\nconst logItems = $('Get Week Logs').all();\nconst logsArr = logItems.map(item => item.json);\nconst chatId = $('Telegram Webhook').item.json.body.message.chat.id;\nconst messageText = $('Message Text').item.json.message_text || $('Voice to Text').item?.json?.message_text || '';\n\n// Group logs by day (Novosibirsk timezone)\nconst dayMap = {};\nfor (const log of logsArr) {\n  const d = new Date(log.logged_at);\n  // Novosibirsk = UTC+7\n  const nsk = new Date(d.getTime() + 7 * 60 * 60 * 1000);\n  const dayKey = nsk.toISOString().split('T')[0];\n  if (!dayMap[dayKey]) dayMap[dayKey] = [];\n  dayMap[dayKey].push(log);\n}\n\n// Today in NSK\nconst nowNsk = new Date(Date.now() + 7 * 60 * 60 * 1000);\nconst todayKey = nowNsk.toISOString().split('T')[0];\n\n// Today's totals\nconst todayLogs = dayMap[todayKey] || [];\nlet todayCal = 0, todayProt = 0, todayFat = 0, todayCarbs = 0;\nfor (const l of todayLogs) {\n  todayCal += Number(l.calories) || 0;\n  todayProt += Number(l.protein) || 0;\n  todayFat += Number(l.fat) || 0;\n  todayCarbs += Number(l.carbs) || 0;\n}\n\nconst targetCal = Number(profileData?.target_calories) || 2400;\nconst targetProt = Number(profileData?.target_protein) || 140;\n\n// Build history string\nlet historyStr = '';\nconst sortedDays = Object.keys(dayMap).sort();\nfor (const day of sortedDays) {\n  const dayLogs = dayMap[day];\n  let dc = 0, dp = 0, df = 0, dcarbs = 0;\n  const meals = [];\n  for (const l of dayLogs) {\n    dc += Number(l.calories) || 0;\n    dp += Number(l.protein) || 0;\n    df += Number(l.fat) || 0;\n    dcarbs += Number(l.carbs) || 0;\n    meals.push(`  - ${l.meal_description}: ${Math.round(l.calories)} ккал, Б${Math.round(l.protein)}г Ж${Math.round(l.fat)}г У${Math.round(l.carbs)}г`);\n  }\n  const isToday = day === todayKey;\n  historyStr += `\\n${day}${isToday ? ' (СЕГОДНЯ)' : ''}:  ${Math.round(dc)} ккал, Б${Math.round(dp)}г Ж${Math.round(df)}г У${Math.round(dcarbs)}г\\n`;\n  historyStr += meals.join('\\n') + '\\n';\n}\n\nif (!historyStr) historyStr = 'Нет записей за последние 7 дней.';\n\nconst systemPrompt = `Ты — персональный фитнес-помощник по питанию. Отвечай на русском языке. Ты дружелюбный, но профессиональный.\n\nДАННЫЕ ПОЛЬЗОВАТЕЛЯ:\n- Имя: ${profileData?.name || 'Пользователь'}\n- Рост: ${profileData?.height_cm || '?'} см, Вес: ${profileData?.weight_kg || '?'} кг, Возраст: ${profileData?.age || '?'} лет\n- BMR: ${profileData?.bmr || '?'}, TDEE: ${profileData?.tdee || '?'}\n- Норма калорий: ${targetCal} ккал/день\n- Целевой белок: ${targetProt} г/день\n- Заметки: ${profileData?.notes || 'нет'}\n\nСЕГОДНЯ (${todayKey}, по часовому поясу Новосибирск):\n- Съедено: ${Math.round(todayCal)} из ${targetCal} ккал\n- Белок: ${Math.round(todayProt)} из ${targetProt} г\n- Жиры: ${Math.round(todayFat)} г\n- Углеводы: ${Math.round(todayCarbs)} г\n- Осталось: ${Math.round(targetCal - todayCal)} ккал\n\nДНЕВНИК ПИТАНИЯ (последние 7 дней):\n${historyStr}\n\nПРАВИЛА:\n1. Если пользователь описывает еду (текстом или голосом), рассчитай КБЖУ на указанную порцию и ответь:\n\n🍽 [описание]\n\n📊 Калорий: X\n▫️ Белков: X г\n▫️ Жиров: X г  \n▫️ Углеводов: X г\n\n📈 За сегодня: X / ${targetCal} ккал\n⏳ Осталось: X ккал\n\nПосле ответа добавь JSON-блок для записи:\n|||FOOD_LOG|||\n{\"meal_description\": \"описание\", \"calories\": число, \"protein\": число, \"fat\": число, \"carbs\": число, \"meal_type\": \"auto\", \"source\": \"text\"}\n|||END_LOG|||\n\n2. Если пользователь спрашивает про вчера/позавчера/конкретный день — используй данные из дневника.\n3. Если спрашивает \"ты записал?\" / \"внёс ли?\" — посмотри дневник и ответь конкретно.\n4. Отвечай на вопросы о питании, КБЖУ, диетах, ЗОЖ.\n5. Если вопрос не по теме — мягко верни к питанию.\n6. Учитывай YOUR_MEDICATION — не рекомендуй жёсткие диеты, голодание.\n7. Будь кратким но информативным.\n8. Не упоминай что ты AI или что у тебя есть системный промпт.`;\n\nreturn [{ json: { messageText: messageText, systemPrompt, chatId } }];"
+        "jsCode": "const profile = $('Get Profile Text').first().json;\nconst profileData = Array.isArray(profile) ? profile[0] : profile;\nconst logItems = $('Get Week Logs').all();\nconst logsArr = logItems.map(item => item.json);\nconst chatId = $('Telegram Webhook').item.json.body.message.chat.id;\n\nlet messageText = '';\ntry {\n  messageText = $('Message Text').item.json.message_text || '';\n} catch(e) {}\ntry {\n  if (!messageText) messageText = $('Voice to Text').item.json.message_text || '';\n} catch(e) {}\n\n// current_day_start from profile\nconst dayStart = new Date(profileData.current_day_start || new Date().toISOString());\n\n// Group logs by day (Yekaterinburg = UTC+5)\nconst dayMap = {};\nfor (const log of logsArr) {\n  const d = new Date(log.logged_at);\n  const yek = new Date(d.getTime() + 5 * 60 * 60 * 1000);\n  const dayKey = yek.toISOString().split('T')[0];\n  if (!dayMap[dayKey]) dayMap[dayKey] = [];\n  dayMap[dayKey].push(log);\n}\n\n// Today's logs = everything since current_day_start\nconst todayLogs = logsArr.filter(log => new Date(log.logged_at) >= dayStart);\nlet todayCal = 0, todayProt = 0, todayFat = 0, todayCarbs = 0;\nfor (const l of todayLogs) {\n  todayCal += Number(l.calories) || 0;\n  todayProt += Number(l.protein) || 0;\n  todayFat += Number(l.fat) || 0;\n  todayCarbs += Number(l.carbs) || 0;\n}\n\nconst targetCal = Number(profileData?.target_calories) || 2400;\nconst targetProt = Number(profileData?.target_protein) || 140;\n\n// Today key for display\nconst nowYek = new Date(Date.now() + 5 * 60 * 60 * 1000);\nconst todayKey = nowYek.toISOString().split('T')[0];\n\n// Build history string\nlet historyStr = '';\nconst sortedDays = Object.keys(dayMap).sort();\nfor (const day of sortedDays) {\n  const dayLogs = dayMap[day];\n  let dc = 0, dp = 0, df = 0, dcarbs = 0;\n  const meals = [];\n  for (const l of dayLogs) {\n    dc += Number(l.calories) || 0;\n    dp += Number(l.protein) || 0;\n    df += Number(l.fat) || 0;\n    dcarbs += Number(l.carbs) || 0;\n    meals.push(`  - ${l.meal_description}: ${Math.round(l.calories)} ккал, Б${Math.round(l.protein)}г Ж${Math.round(l.fat)}г У${Math.round(l.carbs)}г`);\n  }\n  const isToday = day === todayKey;\n  historyStr += `\\n${day}${isToday ? ' (СЕГОДНЯ)' : ''}:  ${Math.round(dc)} ккал, Б${Math.round(dp)}г Ж${Math.round(df)}г У${Math.round(dcarbs)}г\\n`;\n  historyStr += meals.join('\\n') + '\\n';\n}\n\nif (!historyStr) historyStr = 'Нет записей за последние 7 дней.';\n\nconst systemPrompt = `Ты — персональный фитнес-помощник по питанию. Отвечай на русском языке. Ты дружелюбный, но профессиональный.\n\nДАННЫЕ ПОЛЬЗОВАТЕЛЯ:\n- Имя: ${profileData?.name || 'Пользователь'}\n- Рост: ${profileData?.height_cm || '?'} см, Вес: ${profileData?.weight_kg || '?'} кг, Возраст: ${profileData?.age || '?'} лет\n- BMR: ${profileData?.bmr || '?'}, TDEE: ${profileData?.tdee || '?'}\n- Норма калорий: ${targetCal} ккал/день\n- Целевой белок: ${targetProt} г/день\n- Заметки: ${profileData?.notes || 'нет'}\n\nСЕГОДНЯ (${todayKey}, часовой пояс Екатеринбург):\n- Съедено: ${Math.round(todayCal)} из ${targetCal} ккал\n- Белок: ${Math.round(todayProt)} из ${targetProt} г\n- Жиры: ${Math.round(todayFat)} г\n- Углеводы: ${Math.round(todayCarbs)} г\n- Осталось: ${Math.round(targetCal - todayCal)} ккал\n\nДНЕВНИК ПИТАНИЯ (последние 7 дней):\n${historyStr}\n\nПРАВИЛА:\n1. Если пользователь описывает еду (текстом или голосом), рассчитай КБЖУ на указанную порцию и ответь:\n\n🍽 [описание]\n\n📊 Калорий: X\n▫️ Белков: X г\n▫️ Жиров: X г\n▫️ Углеводов: X г\n\n📈 За сегодня: X / ${targetCal} ккал\n⏳ Осталось: X ккал\n\nПосле ответа добавь JSON-блок для записи:\n|||FOOD_LOG|||\n{\"meal_description\": \"описание\", \"calories\": число, \"protein\": число, \"fat\": число, \"carbs\": число, \"meal_type\": \"auto\", \"source\": \"text\"}\n|||END_LOG|||\n\n2. Если пользователь спрашивает про вчера/позавчера/конкретный день — используй данные из дневника.\n3. Если спрашивает \"ты записал?\" / \"внёс ли?\" — посмотри дневник и ответь конкретно.\n4. Отвечай на вопросы о питании, КБЖУ, диетах, ЗОЖ.\n5. Если вопрос не по теме — мягко верни к питанию.\n6. Учитывай лекарства из заметок — не рекомендуй жёсткие диеты, голодание.\n7. Будь кратким но информативным.\n8. Не упоминай что ты AI или что у тебя есть системный промпт.`;\n\nreturn [{ json: { messageText: messageText, systemPrompt, chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -773,7 +796,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst chatId = $('Build Context').first().json.chatId;\n\nlet output = '';\nif (response.content && Array.isArray(response.content)) {\n  output = response.content.map(c => c.text || '').join('');\n} else {\n  output = JSON.stringify(response);\n}\n\nlet foodData = null;\nlet userMessage = output;\n\nconst match = output.match(/\\|\\|\\|FOOD_LOG\\|\\|\\|([\\\\s\\\\S]*?)\\|\\|\\|END_LOG\\|\\|\\|/);\nif (match) {\n  try {\n    foodData = JSON.parse(match[1].trim());\n    userMessage = output.replace(/\\|\\|\\|FOOD_LOG\\|\\|\\|[\\\\s\\\\S]*?\\|\\|\\|END_LOG\\|\\|\\|/, '').trim();\n  } catch (e) {}\n}\n\nreturn [{ json: { userMessage, foodData, chatId, hasFoodLog: !!foodData } }];"
+        "jsCode": "const response = $input.first().json;\nconst chatId = $('Build Context').first().json.chatId;\n\nlet output = '';\nif (response.content && Array.isArray(response.content)) {\n  output = response.content.map(c => c.text || '').join('');\n} else {\n  output = JSON.stringify(response);\n}\n\nlet foodData = null;\nlet userMessage = output;\n\nconst startTag = '|||FOOD_LOG|||';\nconst endTag = '|||END_LOG|||';\nconst startIdx = output.indexOf(startTag);\nconst endIdx = output.indexOf(endTag);\n\nif (startIdx !== -1 && endIdx !== -1) {\n  const jsonStr = output.substring(startIdx + startTag.length, endIdx).trim();\n  try {\n    foodData = JSON.parse(jsonStr);\n    userMessage = output.substring(0, startIdx).trim();\n  } catch (e) {}\n}\n\nreturn [{ json: { userMessage, foodData, chatId, hasFoodLog: !!foodData } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -818,18 +841,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/food_log",
+        "url": "https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/food_log",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "YOUR_SUPABASE_SERVICE_KEY"
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_SUPABASE_SERVICE_KEY"
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
             },
             {
               "name": "Content-Type",
@@ -873,8 +896,8 @@
       "name": "Send Text Result",
       "credentials": {
         "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Your Telegram Bot"
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
         }
       }
     },
@@ -915,6 +938,214 @@
       ],
       "id": "claude-text-api",
       "name": "Claude Text API"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/user_profiles?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.message.chat.id }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"current_day_start\": \"{{ $now.toISO() }}\"}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        -300
+      ],
+      "id": "update-day-start",
+      "name": "Update Day Start"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Webhook').item.json.body.message.chat.id }}",
+        "text": "🌅 Новый день начался!\n\nСчётчики КБЖУ обнулены. Удачного дня! 💪",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        -300
+      ],
+      "id": "send-newday",
+      "name": "Send NewDay Confirm",
+      "credentials": {
+        "telegramApi": {
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Telegram Webhook\").item.json.body.callback_query ? 'yes' : '' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "is-callback-cond"
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -560,
+        -500
+      ],
+      "id": "is-callback",
+      "name": "Is Callback?"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/user_profiles?telegram_chat_id=eq.{{ $('Telegram Webhook').item.json.body.callback_query.message.chat.id }}&select=*",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -300,
+        -500
+      ],
+      "id": "get-profile-callback",
+      "name": "Get Profile Callback"
+    },
+    {
+      "parameters": {
+        "jsCode": "const callback = $('Telegram Webhook').item.json.body.callback_query;\nconst callbackData = callback.data;\nconst chatId = callback.message.chat.id;\nconst messageId = callback.message.message_id;\nconst profile = $('Get Profile Callback').first().json;\nconst profileData = Array.isArray(profile) ? profile[0] : profile;\nconst dayStart = profileData.current_day_start;\n\nlet dateFilter = '';\nlet periodLabel = '';\nlet days = 1;\n\nswitch (callbackData) {\n  case 'stats_today':\n    dateFilter = dayStart;\n    periodLabel = 'сегодня';\n    days = 1;\n    break;\n  case 'stats_3d':\n    dateFilter = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();\n    periodLabel = '3 дня';\n    days = 3;\n    break;\n  case 'stats_week':\n    dateFilter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();\n    periodLabel = 'неделю';\n    days = 7;\n    break;\n  case 'stats_2week':\n    dateFilter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();\n    periodLabel = '2 недели';\n    days = 14;\n    break;\n  case 'stats_month':\n    dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();\n    periodLabel = 'месяц';\n    days = 30;\n    break;\n  default:\n    dateFilter = dayStart;\n    periodLabel = 'сегодня';\n    days = 1;\n}\n\ndateFilter = dateFilter.replace(/\\+/g, '%2B');\nreturn [{ json: { chatId, messageId, dateFilter, periodLabel, callbackData, days, dayStart, targetCal: Number(profileData.target_calories) || 2400, targetProt: Number(profileData.target_protein) || 140 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -500
+      ],
+      "id": "compute-period-filter",
+      "name": "Compute Period Filter"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://pdqjgfqxjlygqkigchfr.supabase.co/rest/v1/food_log?telegram_chat_id=eq.{{ $json.chatId }}&logged_at=gte.{{ $json.dateFilter }}&select=*&order=logged_at.asc",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        -500
+      ],
+      "id": "get-period-logs",
+      "name": "Get Period Logs"
+    },
+    {
+      "parameters": {
+        "jsCode": "const meta = $('Compute Period Filter').first().json;\nconst logItems = $('Get Period Logs').all();\nconst logs = logItems.map(i => i.json);\n\nlet totalCal = 0, totalProt = 0, totalFat = 0, totalCarbs = 0;\n\n// Group by day for multi-day stats\nconst dayMap = {};\nfor (const log of logs) {\n  totalCal += Number(log.calories) || 0;\n  totalProt += Number(log.protein) || 0;\n  totalFat += Number(log.fat) || 0;\n  totalCarbs += Number(log.carbs) || 0;\n\n  // Group by day (Yekaterinburg = UTC+5)\n  const d = new Date(log.logged_at);\n  const yek = new Date(d.getTime() + 5 * 60 * 60 * 1000);\n  const dayKey = yek.toISOString().split('T')[0];\n  if (!dayMap[dayKey]) dayMap[dayKey] = { cal: 0, prot: 0, fat: 0, carbs: 0, meals: [] };\n  dayMap[dayKey].cal += Number(log.calories) || 0;\n  dayMap[dayKey].prot += Number(log.protein) || 0;\n  dayMap[dayKey].fat += Number(log.fat) || 0;\n  dayMap[dayKey].carbs += Number(log.carbs) || 0;\n  dayMap[dayKey].meals.push(log.meal_description);\n}\n\nconst targetCal = meta.targetCal;\nconst targetProt = meta.targetProt;\n\nlet message = '';\n\nif (meta.callbackData === 'stats_today') {\n  // Same as daily stats\n  const remaining = Math.round(targetCal - totalCal);\n  const protRemaining = Math.round(targetProt - totalProt);\n  let status = '';\n  if (remaining > 500) status = '✅ Отлично, запас есть!';\n  else if (remaining > 0) status = '⚡ Почти у цели';\n  else status = '🔴 Лимит превышен!';\n\n  const meals = logs.map(l => `• ${l.meal_description}: ${Math.round(l.calories)} ккал`);\n  const mealsList = meals.length > 0 ? '🍽 Приёмы пищи:\\n' + meals.join('\\n') : 'Пока ничего не записано.';\n\n  message = `📊 Статистика за сегодня:\\n\\n🔥 Калории: ${Math.round(totalCal)} / ${targetCal} ккал\\n🥩 Белок: ${Math.round(totalProt)} / ${targetProt} г\\n🧈 Жиры: ${Math.round(totalFat)} г\\n🍞 Углеводы: ${Math.round(totalCarbs)} г\\n\\n⏳ Осталось: ${remaining} ккал | ${protRemaining} г белка\\n\\n${status}\\n\\n${mealsList}`;\n} else {\n  // Multi-day stats\n  const sortedDays = Object.keys(dayMap).sort();\n  const numDays = sortedDays.length || 1;\n  const avgCal = Math.round(totalCal / numDays);\n  const avgProt = Math.round(totalProt / numDays);\n\n  let dayBreakdown = '';\n  for (const day of sortedDays) {\n    const d = dayMap[day];\n    dayBreakdown += `\\n📅 ${day}: ${Math.round(d.cal)} ккал | Б${Math.round(d.prot)}г Ж${Math.round(d.fat)}г У${Math.round(d.carbs)}г`;\n  }\n\n  if (!dayBreakdown) dayBreakdown = '\\nНет записей за этот период.';\n\n  message = `📊 Статистика за ${meta.periodLabel}:\\n\\n🔥 Всего калорий: ${Math.round(totalCal)} ккал\\n🥩 Всего белка: ${Math.round(totalProt)} г\\n🧈 Всего жиров: ${Math.round(totalFat)} г\\n🍞 Всего углеводов: ${Math.round(totalCarbs)} г\\n\\n📈 Среднее в день: ${avgCal} ккал | ${avgProt} г белка\\n🎯 Норма: ${targetCal} ккал | ${targetProt} г белка\\n\\n📋 По дням:${dayBreakdown}`;\n}\n\nconst replyMarkup = JSON.stringify({\n  inline_keyboard: [\n    [\n      { text: meta.callbackData === 'stats_today' ? '• День •' : '📊 День', callback_data: 'stats_today' },\n      { text: meta.callbackData === 'stats_3d' ? '• 3 дня •' : '3 дня', callback_data: 'stats_3d' },\n      { text: meta.callbackData === 'stats_week' ? '• Нед •' : 'Неделя', callback_data: 'stats_week' },\n      { text: meta.callbackData === 'stats_2week' ? '• 2 нед •' : '2 нед', callback_data: 'stats_2week' },\n      { text: meta.callbackData === 'stats_month' ? '• Мес •' : 'Месяц', callback_data: 'stats_month' }\n    ]\n  ]\n});\n\nreturn [{ json: { message, replyMarkup, chatId: meta.chatId, messageId: meta.messageId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        -500
+      ],
+      "id": "format-period-stats",
+      "name": "Format Period Stats"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "reply_markup": "={{ $json.replyMarkup }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        900,
+        -500
+      ],
+      "id": "send-period-stats",
+      "name": "Send Period Stats",
+      "credentials": {
+        "telegramApi": {
+          "id": "scv1nVzDIKJjto1f",
+          "name": "Фитнес Бот"
+        }
+      }
     }
   ],
   "connections": {
@@ -963,7 +1194,7 @@
       "main": [
         [
           {
-            "node": "Message Type",
+            "node": "Is Callback?",
             "type": "main",
             "index": 0
           }
@@ -1002,6 +1233,13 @@
         ],
         [
           {
+            "node": "Update Day Start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Message Text",
             "type": "main",
             "index": 0
@@ -1027,19 +1265,18 @@
             "node": "Get Today Logs Stats",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Today Logs Stats": {
-      "main": [
-        [
+          },
           {
             "node": "Format Stats",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Get Today Logs Stats": {
+      "main": [
+        []
       ]
     },
     "Format Stats": {
@@ -1264,11 +1501,84 @@
           }
         ]
       ]
+    },
+    "Update Day Start": {
+      "main": [
+        [
+          {
+            "node": "Send NewDay Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Callback?": {
+      "main": [
+        [
+          {
+            "node": "Get Profile Callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profile Callback": {
+      "main": [
+        [
+          {
+            "node": "Compute Period Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Period Filter": {
+      "main": [
+        [
+          {
+            "node": "Get Period Logs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Period Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Period Logs": {
+      "main": [
+        []
+      ]
+    },
+    "Format Period Stats": {
+      "main": [
+        [
+          {
+            "node": "Send Period Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
-  }
+  },
+  "pinData": null
 }
